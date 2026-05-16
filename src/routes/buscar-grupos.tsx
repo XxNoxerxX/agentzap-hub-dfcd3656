@@ -38,7 +38,7 @@ function BuscarGruposPage() {
     if (!query.trim()) return;
     setLoading(true); setLogs([]); setGroups([]);
     try {
-      const res = await fetch("/api/group-search", {
+      const res = await fetch("/api/public/group-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: query.trim() }),
