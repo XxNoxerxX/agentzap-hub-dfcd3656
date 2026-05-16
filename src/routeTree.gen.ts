@@ -19,7 +19,7 @@ import { Route as AutoRespostaRouteImport } from './routes/auto-resposta'
 import { Route as AquecimentoRouteImport } from './routes/aquecimento'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InstanciasIdRouteImport } from './routes/instancias.$id'
-import { Route as ApiGroupSearchRouteImport } from './routes/api/group-search'
+import { Route as ApiPublicGroupSearchRouteImport } from './routes/api/public/group-search'
 
 const MemoriaRoute = MemoriaRouteImport.update({
   id: '/memoria',
@@ -71,9 +71,9 @@ const InstanciasIdRoute = InstanciasIdRouteImport.update({
   path: '/instancias/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGroupSearchRoute = ApiGroupSearchRouteImport.update({
-  id: '/api/group-search',
-  path: '/api/group-search',
+const ApiPublicGroupSearchRoute = ApiPublicGroupSearchRouteImport.update({
+  id: '/api/public/group-search',
+  path: '/api/public/group-search',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -87,8 +87,8 @@ export interface FileRoutesByFullPath {
   '/historico': typeof HistoricoRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
-  '/api/group-search': typeof ApiGroupSearchRoute
   '/instancias/$id': typeof InstanciasIdRoute
+  '/api/public/group-search': typeof ApiPublicGroupSearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +100,8 @@ export interface FileRoutesByTo {
   '/historico': typeof HistoricoRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
-  '/api/group-search': typeof ApiGroupSearchRoute
   '/instancias/$id': typeof InstanciasIdRoute
+  '/api/public/group-search': typeof ApiPublicGroupSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +114,8 @@ export interface FileRoutesById {
   '/historico': typeof HistoricoRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
-  '/api/group-search': typeof ApiGroupSearchRoute
   '/instancias/$id': typeof InstanciasIdRoute
+  '/api/public/group-search': typeof ApiPublicGroupSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,8 +129,8 @@ export interface FileRouteTypes {
     | '/historico'
     | '/membros'
     | '/memoria'
-    | '/api/group-search'
     | '/instancias/$id'
+    | '/api/public/group-search'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,8 +142,8 @@ export interface FileRouteTypes {
     | '/historico'
     | '/membros'
     | '/memoria'
-    | '/api/group-search'
     | '/instancias/$id'
+    | '/api/public/group-search'
   id:
     | '__root__'
     | '/'
@@ -155,8 +155,8 @@ export interface FileRouteTypes {
     | '/historico'
     | '/membros'
     | '/memoria'
-    | '/api/group-search'
     | '/instancias/$id'
+    | '/api/public/group-search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,8 +169,8 @@ export interface RootRouteChildren {
   HistoricoRoute: typeof HistoricoRoute
   MembrosRoute: typeof MembrosRoute
   MemoriaRoute: typeof MemoriaRoute
-  ApiGroupSearchRoute: typeof ApiGroupSearchRoute
   InstanciasIdRoute: typeof InstanciasIdRoute
+  ApiPublicGroupSearchRoute: typeof ApiPublicGroupSearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,11 +245,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InstanciasIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/group-search': {
-      id: '/api/group-search'
-      path: '/api/group-search'
-      fullPath: '/api/group-search'
-      preLoaderRoute: typeof ApiGroupSearchRouteImport
+    '/api/public/group-search': {
+      id: '/api/public/group-search'
+      path: '/api/public/group-search'
+      fullPath: '/api/public/group-search'
+      preLoaderRoute: typeof ApiPublicGroupSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -265,8 +265,8 @@ const rootRouteChildren: RootRouteChildren = {
   HistoricoRoute: HistoricoRoute,
   MembrosRoute: MembrosRoute,
   MemoriaRoute: MemoriaRoute,
-  ApiGroupSearchRoute: ApiGroupSearchRoute,
   InstanciasIdRoute: InstanciasIdRoute,
+  ApiPublicGroupSearchRoute: ApiPublicGroupSearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
