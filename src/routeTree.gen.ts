@@ -9,38 +9,228 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MemoriaRouteImport } from './routes/memoria'
+import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as FiltroNumerosRouteImport } from './routes/filtro-numeros'
+import { Route as CampanhasRouteImport } from './routes/campanhas'
+import { Route as BuscarGruposRouteImport } from './routes/buscar-grupos'
+import { Route as AutoRespostaRouteImport } from './routes/auto-resposta'
+import { Route as AquecimentoRouteImport } from './routes/aquecimento'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InstanciasIdRouteImport } from './routes/instancias.$id'
+import { Route as ApiGroupSearchRouteImport } from './routes/api/group-search'
 
+const MemoriaRoute = MemoriaRouteImport.update({
+  id: '/memoria',
+  path: '/memoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembrosRoute = MembrosRouteImport.update({
+  id: '/membros',
+  path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoricoRoute = HistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FiltroNumerosRoute = FiltroNumerosRouteImport.update({
+  id: '/filtro-numeros',
+  path: '/filtro-numeros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampanhasRoute = CampanhasRouteImport.update({
+  id: '/campanhas',
+  path: '/campanhas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuscarGruposRoute = BuscarGruposRouteImport.update({
+  id: '/buscar-grupos',
+  path: '/buscar-grupos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoRespostaRoute = AutoRespostaRouteImport.update({
+  id: '/auto-resposta',
+  path: '/auto-resposta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AquecimentoRoute = AquecimentoRouteImport.update({
+  id: '/aquecimento',
+  path: '/aquecimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstanciasIdRoute = InstanciasIdRouteImport.update({
+  id: '/instancias/$id',
+  path: '/instancias/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGroupSearchRoute = ApiGroupSearchRouteImport.update({
+  id: '/api/group-search',
+  path: '/api/group-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aquecimento': typeof AquecimentoRoute
+  '/auto-resposta': typeof AutoRespostaRoute
+  '/buscar-grupos': typeof BuscarGruposRoute
+  '/campanhas': typeof CampanhasRoute
+  '/filtro-numeros': typeof FiltroNumerosRoute
+  '/historico': typeof HistoricoRoute
+  '/membros': typeof MembrosRoute
+  '/memoria': typeof MemoriaRoute
+  '/api/group-search': typeof ApiGroupSearchRoute
+  '/instancias/$id': typeof InstanciasIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aquecimento': typeof AquecimentoRoute
+  '/auto-resposta': typeof AutoRespostaRoute
+  '/buscar-grupos': typeof BuscarGruposRoute
+  '/campanhas': typeof CampanhasRoute
+  '/filtro-numeros': typeof FiltroNumerosRoute
+  '/historico': typeof HistoricoRoute
+  '/membros': typeof MembrosRoute
+  '/memoria': typeof MemoriaRoute
+  '/api/group-search': typeof ApiGroupSearchRoute
+  '/instancias/$id': typeof InstanciasIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aquecimento': typeof AquecimentoRoute
+  '/auto-resposta': typeof AutoRespostaRoute
+  '/buscar-grupos': typeof BuscarGruposRoute
+  '/campanhas': typeof CampanhasRoute
+  '/filtro-numeros': typeof FiltroNumerosRoute
+  '/historico': typeof HistoricoRoute
+  '/membros': typeof MembrosRoute
+  '/memoria': typeof MemoriaRoute
+  '/api/group-search': typeof ApiGroupSearchRoute
+  '/instancias/$id': typeof InstanciasIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/aquecimento'
+    | '/auto-resposta'
+    | '/buscar-grupos'
+    | '/campanhas'
+    | '/filtro-numeros'
+    | '/historico'
+    | '/membros'
+    | '/memoria'
+    | '/api/group-search'
+    | '/instancias/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/aquecimento'
+    | '/auto-resposta'
+    | '/buscar-grupos'
+    | '/campanhas'
+    | '/filtro-numeros'
+    | '/historico'
+    | '/membros'
+    | '/memoria'
+    | '/api/group-search'
+    | '/instancias/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/aquecimento'
+    | '/auto-resposta'
+    | '/buscar-grupos'
+    | '/campanhas'
+    | '/filtro-numeros'
+    | '/historico'
+    | '/membros'
+    | '/memoria'
+    | '/api/group-search'
+    | '/instancias/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AquecimentoRoute: typeof AquecimentoRoute
+  AutoRespostaRoute: typeof AutoRespostaRoute
+  BuscarGruposRoute: typeof BuscarGruposRoute
+  CampanhasRoute: typeof CampanhasRoute
+  FiltroNumerosRoute: typeof FiltroNumerosRoute
+  HistoricoRoute: typeof HistoricoRoute
+  MembrosRoute: typeof MembrosRoute
+  MemoriaRoute: typeof MemoriaRoute
+  ApiGroupSearchRoute: typeof ApiGroupSearchRoute
+  InstanciasIdRoute: typeof InstanciasIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/memoria': {
+      id: '/memoria'
+      path: '/memoria'
+      fullPath: '/memoria'
+      preLoaderRoute: typeof MemoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/membros': {
+      id: '/membros'
+      path: '/membros'
+      fullPath: '/membros'
+      preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historico': {
+      id: '/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof HistoricoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/filtro-numeros': {
+      id: '/filtro-numeros'
+      path: '/filtro-numeros'
+      fullPath: '/filtro-numeros'
+      preLoaderRoute: typeof FiltroNumerosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campanhas': {
+      id: '/campanhas'
+      path: '/campanhas'
+      fullPath: '/campanhas'
+      preLoaderRoute: typeof CampanhasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buscar-grupos': {
+      id: '/buscar-grupos'
+      path: '/buscar-grupos'
+      fullPath: '/buscar-grupos'
+      preLoaderRoute: typeof BuscarGruposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-resposta': {
+      id: '/auto-resposta'
+      path: '/auto-resposta'
+      fullPath: '/auto-resposta'
+      preLoaderRoute: typeof AutoRespostaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aquecimento': {
+      id: '/aquecimento'
+      path: '/aquecimento'
+      fullPath: '/aquecimento'
+      preLoaderRoute: typeof AquecimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +238,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/instancias/$id': {
+      id: '/instancias/$id'
+      path: '/instancias/$id'
+      fullPath: '/instancias/$id'
+      preLoaderRoute: typeof InstanciasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/group-search': {
+      id: '/api/group-search'
+      path: '/api/group-search'
+      fullPath: '/api/group-search'
+      preLoaderRoute: typeof ApiGroupSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AquecimentoRoute: AquecimentoRoute,
+  AutoRespostaRoute: AutoRespostaRoute,
+  BuscarGruposRoute: BuscarGruposRoute,
+  CampanhasRoute: CampanhasRoute,
+  FiltroNumerosRoute: FiltroNumerosRoute,
+  HistoricoRoute: HistoricoRoute,
+  MembrosRoute: MembrosRoute,
+  MemoriaRoute: MemoriaRoute,
+  ApiGroupSearchRoute: ApiGroupSearchRoute,
+  InstanciasIdRoute: InstanciasIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
