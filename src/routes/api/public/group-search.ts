@@ -45,7 +45,7 @@ const DIRECTORY_SITES = [
   "https://www.grupowhats.com",
 ];
 
-export const Route = createFileRoute("/api/group-search")({
+export const Route = createFileRoute("/api/public/group-search")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
