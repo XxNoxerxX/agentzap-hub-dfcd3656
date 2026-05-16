@@ -82,39 +82,57 @@ export const Route = createFileRoute("/api/public/group-search")({
                 dorks = [`"${query}" site:chat.whatsapp.com`, `${query} grupo whatsapp`, `inurl:chat.whatsapp.com ${query}`];
               }
 
-              // FASE 2 — Brave Search HTML scrape
-              send({ phase: 2, type: "info", log: "Buscando no Brave Search…" });
-              const urlsFromBrave = new Set<string>();
-              for (const d of dorks) {
-                try {
-                  const r = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(d)}`, {
-                    headers: { "User-Agent": "Mozilla/5.0 AgentZap/1.0" },
-                  });
-                  const html = await r.text();
-                  for (const m of html.matchAll(WA_LINK)) { found.set(m[0], { url: m[0] }); urlsFromBrave.add(m[0]); send({ group: { url: m[0] } }); }
-                  // Coletar URLs externas para deep scrape
-                  for (const m of html.matchAll(/href="(https?:\/\/[^"]+)"/g)) {
-                    const u = m[1];
-                    if (!u.includes("brave.com") && !u.includes("chat.whatsapp.com") && Math.random() < 0.3) urlsFromBrave.add(u);
-                  }
-                  send({ phase: 2, type: "info", log: `  ✓ ${d} → ${[...html.matchAll(WA_LINK)].length} links` });
-                } catch (e) { send({ phase: 2, type: "err", log: `  ✗ ${d}: ${(e as Error).message}` }); }
+              // FASE 2 — Firecrawl Search (web + scrape em uma chamada)
+              const fcKey = process.env.FIRECRAWL_API_KEY;
+              if (!fcKey) {
+                send({ phase: 2, type: "err", log: "FIRECRAWL_API_KEY ausente — pulando busca web" });
+              } else {
+                send({ phase: 2, type: "info", log: "Buscando via Firecrawl (search + scrape)…" });
+                let totalCredits = 0;
+                for (const d of dorks) {
+                  try {
+                    const r = await fetch("https://api.firecrawl.dev/v2/search", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${fcKey}`, "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        query: d,
+                        limit: 8,
+                        scrapeOptions: { formats: ["markdown", "links"], onlyMainContent: true },
+                      }),
+                      signal: AbortSignal.timeout(45000),
+                    });
+                    if (!r.ok) {
+                      send({ phase: 2, type: "err", log: `  ✗ ${d}: HTTP ${r.status} ${(await r.text()).slice(0, 120)}` });
+                      continue;
+                    }
+                    const j = await r.json() as { data?: { web?: Array<{ url?: string; title?: string; description?: string; markdown?: string; links?: string[] }> }; creditsUsed?: number };
+                    const results = j.data?.web ?? [];
+                    totalCredits += j.creditsUsed ?? 0;
+                    let nNew = 0;
+                    for (const res of results) {
+                      // 1) URL direta se já for whatsapp
+                      if (res.url && WA_LINK.test(res.url)) {
+                        WA_LINK.lastIndex = 0;
+                        if (!found.has(res.url)) { found.set(res.url, { url: res.url, title: res.title, description: res.description }); send({ group: { url: res.url, title: res.title } }); nNew++; }
+                      }
+                      // 2) Links extraídos via scrape
+                      for (const l of res.links ?? []) {
+                        WA_LINK.lastIndex = 0;
+                        if (WA_LINK.test(l) && !found.has(l)) { found.set(l, { url: l }); send({ group: { url: l } }); nNew++; }
+                      }
+                      // 3) Links no markdown
+                      for (const m of (res.markdown ?? "").matchAll(WA_LINK)) {
+                        if (!found.has(m[0])) { found.set(m[0], { url: m[0] }); send({ group: { url: m[0] } }); nNew++; }
+                      }
+                    }
+                    send({ phase: 2, type: "info", log: `  ✓ ${d} → ${results.length} resultados, +${nNew} grupos` });
+                  } catch (e) { send({ phase: 2, type: "err", log: `  ✗ ${d}: ${(e as Error).message}` }); }
+                }
+                send({ phase: 2, type: "ok", log: `Firecrawl: ${found.size} grupos · ${totalCredits} créditos usados` });
               }
-              send({ phase: 2, type: "ok", log: `${found.size} grupos via Brave` });
 
-              // FASE 3 — Deep scrape
-              send({ phase: 3, type: "info", log: "Deep scrape de páginas promissoras…" });
-              const toScrape = [...urlsFromBrave].filter((u) => !u.includes("chat.whatsapp.com")).slice(0, 8);
-              for (const u of toScrape) {
-                try {
-                  const r = await fetch(u, { headers: { "User-Agent": "Mozilla/5.0 AgentZap/1.0" }, signal: AbortSignal.timeout(8000) });
-                  const html = await r.text();
-                  let n = 0;
-                  for (const m of html.matchAll(WA_LINK)) { if (!found.has(m[0])) { found.set(m[0], { url: m[0] }); send({ group: { url: m[0] } }); n++; } }
-                  if (n > 0) send({ phase: 3, type: "info", log: `  + ${n} de ${new URL(u).hostname}` });
-                } catch { /* ignore */ }
-              }
-              send({ phase: 3, type: "ok", log: `Total acumulado: ${found.size}` });
+              // FASE 3 — (mesclada na 2 via scrapeOptions)
+              send({ phase: 3, type: "ok", log: "Deep scrape já incluído na fase anterior (Firecrawl)" });
 
               // FASE 4 — Diretórios
               send({ phase: 4, type: "info", log: "Varrendo sites diretório…" });
