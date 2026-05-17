@@ -72,7 +72,7 @@ function BuscarGruposPage() {
     } finally { setLoading(false); }
   };
 
-  const PHASES = ["Estratégia IA", "Brave Search", "Deep Scrape", "Sites Diretório", "Enriquecimento IA"];
+  const PHASES = ["Estratégia IA", "Firecrawl Search", "Deep Scrape", "Sites Diretório", "Enriquecimento IA"];
 
   return (
     <div>
