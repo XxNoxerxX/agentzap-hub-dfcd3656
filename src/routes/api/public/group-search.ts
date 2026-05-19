@@ -2,8 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Busca agentic de grupos WhatsApp.
- * Brave Search (multi-dork) -> validação real de convite -> auto-refinamento IA.
- * SSE streaming.
+ * Fase 0: Expansão IA (briefing + sugestões de keywords).
+ * Fase 1: Geração de dorks.
+ * Fase 2: Brave Search.
+ * Fase 3: Validação real do convite (HTML do WhatsApp).
+ * Fase 4: Auto-refinamento agentic.
+ * Fase 5: Relevância estrita (com base no título/descrição REAIS).
  */
 
 const NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -19,6 +23,7 @@ interface FoundGroup {
   image?: string;
   status: GroupStatus;
   relevance?: number;
+  reason?: string;
 }
 
 function sse(obj: unknown) { return `data: ${JSON.stringify(obj)}\n\n`; }
@@ -74,7 +79,6 @@ async function braveSearch(query: string, key: string): Promise<{ url: string; t
   return j.web?.results ?? [];
 }
 
-/** Valida convite real chamando a página do WhatsApp. */
 async function validateInvite(code: string): Promise<{ status: GroupStatus; title?: string; description?: string; image?: string }> {
   try {
     const res = await fetch(`https://chat.whatsapp.com/${code}`, {
@@ -89,7 +93,6 @@ async function validateInvite(code: string): Promise<{ status: GroupStatus; titl
     if (!res.ok) return { status: "unknown" };
     const html = await res.text();
 
-    // Sinais de revogado/inválido
     const revokedSignals = [
       /link do convite.*?(reset|revogad|inv[áa]lid|expirad)/i,
       /invite link.*?(reset|revoked|invalid|expired)/i,
@@ -99,18 +102,15 @@ async function validateInvite(code: string): Promise<{ status: GroupStatus; titl
     ];
     if (revokedSignals.some((re) => re.test(html))) return { status: "revoked" };
 
-    // Extrai metadados
     const ogTitle = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i)?.[1];
     const ogDesc = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i)?.[1];
     const ogImage = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i)?.[1];
 
     const hasJoinAction = /(use o link do grupo para entrar|use this invite link to join|action=join)/i.test(html);
 
-    // Título genérico = inválido
     if (!ogTitle || /^WhatsApp$/i.test(ogTitle.trim())) {
       return hasJoinAction ? { status: "unknown" } : { status: "revoked" };
     }
-
     return { status: "active", title: ogTitle, description: ogDesc, image: ogImage };
   } catch { return { status: "unknown" }; }
 }
@@ -126,6 +126,14 @@ const DEFAULT_DORKS = (q: string) => [
   `"${q}" whatsapp grupo`,
 ];
 
+interface ExpansionBrief {
+  brief: string;             // descrição rica do que o usuário procura
+  positiveTerms: string[];   // termos que DEVEM aparecer (sinônimos, variantes regionais)
+  negativeTerms: string[];   // termos a evitar (desambiguação)
+  keywordVariants: string[]; // sugestões de queries alternativas pro usuário clicar
+  suggestions: string[];     // sugestões textuais de refinamento
+}
+
 export const Route = createFileRoute("/api/public/group-search")({
   server: {
     handlers: {
@@ -133,9 +141,10 @@ export const Route = createFileRoute("/api/public/group-search")({
         const nvidiaKey = process.env.NVIDIA_API_KEY;
         const braveKey = process.env.BRAVE_API_KEY;
 
-        let body: { query?: string; depth?: number };
+        let body: { query?: string; depth?: number; context?: string };
         try { body = await request.json(); } catch { return new Response("bad json", { status: 400 }); }
         const query = (body.query ?? "").toString().slice(0, 300).trim();
+        const context = (body.context ?? "").toString().slice(0, 500).trim();
         const depth = Math.max(1, Math.min(5, body.depth ?? 5));
         if (!query) return new Response("query required", { status: 400 });
 
@@ -149,35 +158,82 @@ export const Route = createFileRoute("/api/public/group-search")({
             try {
               if (!braveKey) { send({ error: "BRAVE_API_KEY ausente" }); return; }
 
+              // ============ FASE 0 — Expansão de tema ============
+              let expansion: ExpansionBrief = {
+                brief: query + (context ? ` — contexto: ${context}` : ""),
+                positiveTerms: [query],
+                negativeTerms: [],
+                keywordVariants: [],
+                suggestions: [],
+              };
+
+              if (nvidiaKey) {
+                send({ phase: 0, type: "info", log: `Expandindo tema "${query}"${context ? ` com contexto` : ""}…` });
+                try {
+                  const out = await nvidia([
+                    { role: "system", content: "Você é especialista em pesquisa semântica e desambiguação. Dada uma palavra-chave (e opcionalmente um contexto do usuário), você produz: (1) brief detalhado do que o usuário REALMENTE busca, (2) termos positivos esperados em títulos/descrições de grupos relevantes, (3) termos negativos para descartar grupos NÃO-relacionados (homônimos, ambiguidades), (4) variações de query mais específicas, (5) sugestões textuais para o usuário refinar. Responda APENAS um objeto JSON." },
+                    { role: "user", content: `Palavra-chave: "${query}"
+${context ? `Contexto fornecido pelo usuário: "${context}"` : "Sem contexto extra."}
+
+Exemplo de problema: para a palavra "paraguai" sem contexto, grupos como "Visão de Águia Estrada" ou "Imitando o Lula" NÃO são relevantes — eles só citam Paraguai por acaso. Grupos relevantes seriam sobre: compras no Paraguai, Ciudad del Este, sacoleiros, atacado PY, importados, eletrônicos CDE, etc.
+
+Retorne JSON exato:
+{
+  "brief": "...descrição rica do que o usuário busca (1-3 frases)...",
+  "positiveTerms": ["...","..."],  // 10-20 termos/sinônimos/variantes regionais que DEVEM aparecer em grupos relevantes
+  "negativeTerms": ["...","..."],  // 5-15 termos que indicam grupo OFF-TOPIC (política, religião não relacionada, memes, etc.)
+  "keywordVariants": ["...","..."], // 6-10 queries alternativas mais específicas para o usuário clicar (ex.: "compras paraguai ciudad del este", "atacado eletrônicos py")
+  "suggestions": ["...","..."]      // 3-5 sugestões TEXTUAIS curtas para o usuário melhorar a busca (ex.: "Adicione 'compras' para focar em sacoleiros")
+}` },
+                  ], nvidiaKey, 2500);
+                  const parsed = extractJSON<Partial<ExpansionBrief>>(out);
+                  if (parsed && parsed.brief) {
+                    expansion = {
+                      brief: parsed.brief,
+                      positiveTerms: (parsed.positiveTerms ?? []).filter((s) => typeof s === "string"),
+                      negativeTerms: (parsed.negativeTerms ?? []).filter((s) => typeof s === "string"),
+                      keywordVariants: (parsed.keywordVariants ?? []).filter((s) => typeof s === "string").slice(0, 10),
+                      suggestions: (parsed.suggestions ?? []).filter((s) => typeof s === "string").slice(0, 5),
+                    };
+                    send({ phase: 0, type: "ok", log: `Brief: ${expansion.brief}` });
+                    send({ phase: 0, type: "info", log: `+ ${expansion.positiveTerms.length} termos positivos · ${expansion.negativeTerms.length} negativos` });
+                    send({ expansion });
+                  }
+                } catch (e) {
+                  send({ phase: 0, type: "err", log: `Expansão falhou: ${(e as Error).message}` });
+                }
+              }
+
               // ============ FASE 1 — Estratégia ============
-              send({ phase: 1, type: "info", log: `Profundidade: ${depth}/5 · query: "${query}"` });
+              send({ phase: 1, type: "info", log: `Profundidade: ${depth}/5` });
               const dorkTargetByDepth = [10, 15, 25, 40, 60][depth - 1];
               let dorks: string[] = [];
 
               if (nvidiaKey) {
                 try {
-                  send({ phase: 1, type: "info", log: `Gerando ${dorkTargetByDepth} dorks via IA…` });
+                  send({ phase: 1, type: "info", log: `Gerando ${dorkTargetByDepth} dorks via IA (com brief expandido)…` });
                   const out = await nvidia([
-                    { role: "system", content: "Você é especialista em Google/Brave dorking para encontrar links públicos de grupos WhatsApp. Responda APENAS um array JSON de strings." },
-                    { role: "user", content: `Gere EXATAMENTE ${dorkTargetByDepth} dorks variadas (português + inglês + espanhol quando fizer sentido) para encontrar grupos WhatsApp sobre: "${query}".
-Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "chat.whatsapp.com", aspas em frases-chave, sinônimos, variações regionais, hashtags, plataformas adjacentes (reddit.com, twitter.com, facebook.com/groups, telegram, medium, dev.to, github, pastebin, t.me). Inclua dorks que busquem em fóruns/blogs/listagens. Seja CRIATIVO e EXAUSTIVO. Responda só com o JSON array de strings.` },
-                  ], nvidiaKey, 3000);
+                    { role: "system", content: "Você é especialista em Google/Brave dorking para encontrar links de grupos WhatsApp PRECISOS. Use o brief e os termos positivos para gerar dorks ALTAMENTE ESPECÍFICAS — evite queries genéricas que retornem off-topic. Responda APENAS array JSON de strings." },
+                    { role: "user", content: `BRIEF: ${expansion.brief}
+TERMOS POSITIVOS: ${expansion.positiveTerms.join(", ")}
+TERMOS A EVITAR (use -termo nas dorks): ${expansion.negativeTerms.join(", ")}
+
+Gere EXATAMENTE ${dorkTargetByDepth} dorks variadas (PT/EN/ES) COMBINANDO os termos positivos com operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "chat.whatsapp.com". Use aspas em frases, combine 2-3 termos positivos por dork, e adicione -termoNegativo quando ajudar. Inclua buscas em reddit.com, facebook.com/groups, t.me, pastebin, github. JSON array só.` },
+                  ], nvidiaKey, 3500);
                   const parsed = extractJSON<string[]>(out) ?? [];
                   dorks = parsed.filter((d) => typeof d === "string" && d.length > 3).slice(0, dorkTargetByDepth);
-                  send({ phase: 1, type: "ok", log: `${dorks.length} dorks geradas pela IA` });
+                  send({ phase: 1, type: "ok", log: `${dorks.length} dorks geradas` });
                 } catch (e) {
                   send({ phase: 1, type: "err", log: `IA falhou: ${(e as Error).message}. Usando padrão.` });
                 }
               }
               if (dorks.length === 0) dorks = DEFAULT_DORKS(query);
-              dorks.slice(0, 12).forEach((d) => send({ phase: 1, type: "info", log: `  • ${d}` }));
-              if (dorks.length > 12) send({ phase: 1, type: "info", log: `  … +${dorks.length - 12} dorks` });
+              dorks.slice(0, 10).forEach((d) => send({ phase: 1, type: "info", log: `  • ${d}` }));
+              if (dorks.length > 10) send({ phase: 1, type: "info", log: `  … +${dorks.length - 10} dorks` });
 
               // ============ FASE 2 — Brave Search ============
               send({ phase: 2, type: "info", log: `Buscando no Brave Search (${dorks.length} dorks)…` });
               let totalResults = 0;
-              const allTextForLinks: string[] = [];
-
               for (let i = 0; i < dorks.length; i++) {
                 const d = dorks[i];
                 try {
@@ -185,7 +241,6 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                   totalResults += results.length;
                   let nNew = 0;
                   for (const r of results) {
-                    allTextForLinks.push(`${r.url} ${r.title ?? ""} ${r.description ?? ""}`);
                     for (const { url, code } of extractWaLinks(`${r.url} ${r.title ?? ""} ${r.description ?? ""}`)) {
                       if (!found.has(code)) {
                         emit({ url, code, title: r.title, description: r.description, status: "unknown" });
@@ -194,16 +249,15 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                     }
                   }
                   send({ phase: 2, type: nNew > 0 ? "ok" : "info", log: `  [${i + 1}/${dorks.length}] ${results.length} resultados, +${nNew} grupos · "${d.slice(0, 60)}"` });
-                  // pequena pausa pra respeitar rate limit Brave free (1 req/s)
                   await new Promise((r) => setTimeout(r, 1100));
                 } catch (e) {
                   send({ phase: 2, type: "err", log: `  ✗ "${d.slice(0, 60)}": ${(e as Error).message}` });
                   await new Promise((r) => setTimeout(r, 1500));
                 }
               }
-              send({ phase: 2, type: "ok", log: `Brave: ${totalResults} resultados · ${found.size} grupos únicos descobertos` });
+              send({ phase: 2, type: "ok", log: `Brave: ${totalResults} resultados · ${found.size} grupos únicos` });
 
-              // ============ FASE 3 — Validação real de convites ============
+              // ============ FASE 3 — Validação ============
               const toValidate = [...found.values()];
               send({ phase: 3, type: "info", log: `Validando ${toValidate.length} convites no WhatsApp…` });
               let active = 0, revoked = 0, unknown = 0;
@@ -225,26 +279,24 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                   else if (v.status === "revoked") revoked++;
                   else unknown++;
                 }));
-                send({ phase: 3, type: "info", log: `  validados ${Math.min(i + BATCH, toValidate.length)}/${toValidate.length} · ativos:${active} revogados:${revoked} ?:${unknown}` });
+                send({ phase: 3, type: "info", log: `  ${Math.min(i + BATCH, toValidate.length)}/${toValidate.length} · ativos:${active} revogados:${revoked} ?:${unknown}` });
               }
-              send({ phase: 3, type: "ok", log: `Validação: ${active} ativos · ${revoked} revogados · ${unknown} indeterminados` });
+              send({ phase: 3, type: "ok", log: `Validação: ${active} ativos · ${revoked} revogados · ${unknown} ?` });
 
-              // ============ FASE 4 — Auto-refinamento agentic ============
+              // ============ FASE 4 — Refinamento ============
               if (nvidiaKey && depth >= 3 && active > 0) {
                 const activeGroups = [...found.values()].filter((g) => g.status === "active").slice(0, 30);
                 const refinePasses = depth === 5 ? 2 : 1;
-
                 for (let pass = 1; pass <= refinePasses; pass++) {
-                  send({ phase: 4, type: "info", log: `Refinamento ${pass}/${refinePasses}: gerando novas dorks baseado em ${activeGroups.length} grupos ativos…` });
+                  send({ phase: 4, type: "info", log: `Refinamento ${pass}/${refinePasses} sobre ${activeGroups.length} ativos…` });
                   try {
                     const sample = activeGroups.map((g) => `- ${g.title ?? g.url}${g.description ? ` :: ${g.description.slice(0, 100)}` : ""}`).join("\n");
                     const out = await nvidia([
-                      { role: "system", content: "Você refina buscas. Baseado em grupos JÁ encontrados, infere subtemas/nichos relacionados e gera novas dorks específicas. Responda APENAS array JSON de strings." },
-                      { role: "user", content: `Tema original: "${query}".\nGrupos ATIVOS já encontrados:\n${sample}\n\nGere 15 NOVAS dorks (sem repetir as anteriores) focadas em subtemas, variações regionais, nichos adjacentes e termos específicos que apareceram nos títulos acima. Use site:chat.whatsapp.com, inurl:, intext:. JSON array só.` },
+                      { role: "system", content: "Você refina dorks com base no brief e nos grupos JÁ ATIVOS encontrados. Foco em precisão. Responda APENAS array JSON." },
+                      { role: "user", content: `BRIEF: ${expansion.brief}\nTERMOS POSITIVOS: ${expansion.positiveTerms.join(", ")}\nGRUPOS ATIVOS:\n${sample}\n\nGere 15 NOVAS dorks ALTAMENTE ESPECÍFICAS (subtemas, nichos, regionais) baseadas nos padrões dos títulos acima. JSON array só.` },
                     ], nvidiaKey, 2500);
                     const newDorks = (extractJSON<string[]>(out) ?? []).filter((d) => typeof d === "string").slice(0, 15);
                     send({ phase: 4, type: "ok", log: `  ${newDorks.length} dorks refinadas` });
-
                     const before = found.size;
                     for (let i = 0; i < newDorks.length; i++) {
                       const d = newDorks[i];
@@ -259,7 +311,6 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                             }
                           }
                         }
-                        // valida só os novos imediatamente
                         await Promise.all(newCodes.map(async (code) => {
                           const v = await validateInvite(code);
                           const cur = found.get(code)!;
@@ -274,35 +325,54 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                         await new Promise((r) => setTimeout(r, 1500));
                       }
                     }
-                    send({ phase: 4, type: "ok", log: `Refinamento ${pass}: +${found.size - before} grupos novos` });
+                    send({ phase: 4, type: "ok", log: `Refinamento ${pass}: +${found.size - before} grupos` });
                   } catch (e) {
-                    send({ phase: 4, type: "err", log: `Refinamento ${pass} falhou: ${(e as Error).message}` });
+                    send({ phase: 4, type: "err", log: `Refinamento ${pass}: ${(e as Error).message}` });
                   }
                 }
               } else {
-                send({ phase: 4, type: "info", log: "Refinamento pulado (depth<3 ou sem grupos ativos)" });
+                send({ phase: 4, type: "info", log: "Refinamento pulado" });
               }
 
-              // ============ FASE 5 — Relevância ============
+              // ============ FASE 5 — Relevância ESTRITA ============
               const finalList = [...found.values()];
-              if (nvidiaKey && finalList.length > 0) {
-                send({ phase: 5, type: "info", log: `Calculando relevância de ${finalList.length} grupos…` });
+              const activeList = finalList.filter((g) => g.status === "active" && g.title);
+              if (nvidiaKey && activeList.length > 0) {
+                send({ phase: 5, type: "info", log: `Avaliando relevância ESTRITA de ${activeList.length} grupos ativos…` });
                 try {
-                  const slim = finalList.slice(0, 80).map((g) => ({ url: g.url, title: g.title, description: g.description?.slice(0, 120) }));
-                  const out = await nvidia([
-                    { role: "system", content: "Você atribui relevância 0-1 (float) a grupos WhatsApp dado um tema. Responda APENAS JSON array de {url, relevance}." },
-                    { role: "user", content: `Tema: "${query}". Grupos: ${JSON.stringify(slim)}. Retorne só o JSON.` },
-                  ], nvidiaKey, 3000);
-                  const scored = extractJSON<Array<{ url: string; relevance: number }>>(out) ?? [];
-                  for (const s of scored) {
-                    const code = s.url?.match(/chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9]+)/)?.[1];
-                    if (code && found.has(code)) {
-                      const cur = found.get(code)!;
-                      found.set(code, { ...cur, relevance: s.relevance });
+                  // Chunks de 25 pra prompt não explodir
+                  const CHUNK = 25;
+                  let scoredCount = 0;
+                  for (let i = 0; i < activeList.length; i += CHUNK) {
+                    const chunk = activeList.slice(i, i + CHUNK);
+                    const slim = chunk.map((g, idx) => ({ i: idx, title: g.title, desc: g.description?.slice(0, 200) }));
+                    const out = await nvidia([
+                      { role: "system", content: `Você avalia relevância ESTRITA de grupos WhatsApp dado um brief. Seja RIGOROSO: grupo só é relevante se o título/descrição mostrar conexão CLARA com o tema. Se for genérico, off-topic, política/religião não relacionada, ou só mencionar o termo por acaso, score = 0. Responda APENAS array JSON: [{"i":int, "score":float 0-1, "reason":"motivo curto"}].` },
+                      { role: "user", content: `BRIEF: ${expansion.brief}
+TERMOS POSITIVOS: ${expansion.positiveTerms.join(", ")}
+TERMOS NEGATIVOS (penalize fortemente): ${expansion.negativeTerms.join(", ")}
+
+GRUPOS:
+${JSON.stringify(slim)}
+
+Avalie cada grupo. Score 0 = totalmente off-topic. Score 1 = perfeitamente alinhado ao brief.` },
+                    ], nvidiaKey, 3500);
+                    const scored = extractJSON<Array<{ i: number; score: number; reason?: string }>>(out) ?? [];
+                    for (const s of scored) {
+                      const g = chunk[s.i];
+                      if (g) {
+                        const upd = { ...g, relevance: Math.max(0, Math.min(1, s.score)), reason: s.reason };
+                        found.set(g.code, upd);
+                        send({ groupUpdate: upd });
+                        scoredCount++;
+                      }
                     }
+                    send({ phase: 5, type: "info", log: `  ${Math.min(i + CHUNK, activeList.length)}/${activeList.length} avaliados` });
                   }
-                  send({ phase: 5, type: "ok", log: `${scored.length} grupos pontuados` });
-                } catch (e) { send({ phase: 5, type: "err", log: `Relevância falhou: ${(e as Error).message}` }); }
+                  send({ phase: 5, type: "ok", log: `${scoredCount} grupos pontuados (rigoroso)` });
+                } catch (e) {
+                  send({ phase: 5, type: "err", log: `Relevância: ${(e as Error).message}` });
+                }
               }
 
               const sorted = [...found.values()].sort((a, b) => {
@@ -311,10 +381,10 @@ Use TODOS estes operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, "
                 if (sa !== sb) return sb - sa;
                 return (b.relevance ?? 0) - (a.relevance ?? 0);
               });
-
               const stats = {
                 total: sorted.length,
                 active: sorted.filter((g) => g.status === "active").length,
+                relevant: sorted.filter((g) => g.status === "active" && (g.relevance ?? 0) >= 0.5).length,
                 revoked: sorted.filter((g) => g.status === "revoked").length,
                 unknown: sorted.filter((g) => g.status === "unknown").length,
               };
