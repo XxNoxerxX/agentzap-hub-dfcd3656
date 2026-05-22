@@ -466,29 +466,35 @@ JSON array só, sem comentários.` },
                   send({ phase: 2, type: "ok", log: `🔥 Firecrawl concluído: +${total} grupos` });
                 })());
 
-                // Sites diretório via Firecrawl (site:domain query)
+                // Sites diretório: 2 queries por site pra maximizar cobertura
                 tasks.push((async () => {
                   let total = 0;
                   for (const site of DIRECTORY_SITES) {
-                    try {
-                      const r = await firecrawlSearch(`site:${site} ${query}`, firecrawlKey, 10);
-                      const n = await processResults(r, "directory");
-                      total += n;
-                      if (n > 0) send({ phase: 2, type: "ok", log: `📚 ${site} +${n}` });
-                    } catch (e) {
-                      send({ phase: 2, type: "err", log: `📚 ${site}: ${(e as Error).message.slice(0, 60)}` });
+                    for (const v of variants.slice(0, 2)) {
+                      try {
+                        const r = await firecrawlSearch(`site:${site} "chat.whatsapp.com/" ${v}`, firecrawlKey, 10);
+                        const n = await processResults(r, "directory");
+                        total += n;
+                        if (n > 0) send({ phase: 2, type: "ok", log: `📚 ${site} "${v.slice(0, 25)}" +${n}` });
+                      } catch (e) {
+                        send({ phase: 2, type: "err", log: `📚 ${site}: ${(e as Error).message.slice(0, 60)}` });
+                      }
+                      await new Promise((r) => setTimeout(r, 500));
                     }
-                    await new Promise((r) => setTimeout(r, 500));
                   }
                   send({ phase: 2, type: "ok", log: `📚 Diretórios concluídos: +${total} grupos` });
                 })());
               }
 
-              // DuckDuckGo: roda nas variantes (grátis, fallback robusto)
+              // DuckDuckGo: roda nas variantes com âncora chat.whatsapp.com/
               tasks.push((async () => {
                 let total = 0;
                 for (const v of variants) {
-                  const queries = [`${v} chat.whatsapp.com`, `${v} grupo whatsapp link`];
+                  const queries = [
+                    `"chat.whatsapp.com/" ${v}`,
+                    `"chat.whatsapp.com/" "${v}" grupo`,
+                    `inurl:"chat.whatsapp.com/" ${v}`,
+                  ];
                   for (const q of queries) {
                     try {
                       const r = await duckduckgoSearch(q);
@@ -503,6 +509,7 @@ JSON array só, sem comentários.` },
                 }
                 send({ phase: 2, type: "ok", log: `🦆 DuckDuckGo concluído: +${total} grupos` });
               })());
+
 
               await Promise.allSettled(tasks);
               send({ phase: 2, type: "ok", log: `Total único: ${found.size} grupos · ${shortenersSeen.size} shorteners` });
