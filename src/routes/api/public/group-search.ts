@@ -245,15 +245,23 @@ async function validateInviteCached(code: string): Promise<{ status: GroupStatus
 // ============ DORKS PADRÃO ============
 
 const DEFAULT_DORKS = (q: string) => [
-  `"${q}" site:chat.whatsapp.com`,
-  `${q} "chat.whatsapp.com"`,
-  `${q} grupo whatsapp link`,
-  `${q} entrar grupo whatsapp`,
-  `inurl:chat.whatsapp.com ${q}`,
-  `intext:"chat.whatsapp.com" ${q}`,
-  `${q} whatsapp group join`,
-  `"${q}" whatsapp grupo`,
+  `"chat.whatsapp.com/" "${q}"`,
+  `"chat.whatsapp.com/" ${q}`,
+  `inurl:"chat.whatsapp.com/" "${q}"`,
+  `intext:"chat.whatsapp.com/" ${q}`,
+  `"https://chat.whatsapp.com/" ${q}`,
+  `"chat.whatsapp.com/" ${q} grupo`,
+  `"chat.whatsapp.com/" ${q} convite`,
+  `"chat.whatsapp.com/" ${q} entrar`,
+  `"chat.whatsapp.com/" ${q} site:reddit.com`,
+  `"chat.whatsapp.com/" ${q} site:facebook.com`,
+  `"chat.whatsapp.com/" ${q} site:t.me`,
+  `"chat.whatsapp.com/" ${q} site:pastebin.com`,
+  `"chat.whatsapp.com/" ${q} site:github.com`,
+  `"chat.whatsapp.com/" ${q} site:medium.com`,
+  `${q} "chat.whatsapp.com/" -site:chat.whatsapp.com`,
 ];
+
 
 interface ExpansionBrief {
   brief: string;
