@@ -555,6 +555,61 @@ JSON array só, sem comentários.` },
               }
               send({ phase: 3, type: "ok", log: `Validação: ${active} ativos · ${revoked} revogados · ${unknown} ? · ${cached} do cache` });
 
+              // ============ FASE 3.5 — Auto-expansão se < 5 ativos ============
+              const MIN_TARGET = 5;
+              const remainingVariants = expansion.keywordVariants.filter((v) => !variants.includes(v));
+              let autoRound = 0;
+              while (active < MIN_TARGET && autoRound < 3 && remainingVariants.length > 0) {
+                autoRound++;
+                const extras = remainingVariants.splice(0, 3);
+                send({ phase: 3, type: "info", log: `⚡ Auto-expansão ${autoRound}: ${active}/${MIN_TARGET} ativos. Tentando: ${extras.map((e) => `"${e}"`).join(", ")}` });
+                const autoTasks: Promise<void>[] = [];
+                for (const v of extras) {
+                  if (firecrawlKey) {
+                    autoTasks.push((async () => {
+                      for (const q of [`"chat.whatsapp.com/" "${v}"`, `"chat.whatsapp.com/" ${v} grupo`]) {
+                        try {
+                          const r = await firecrawlSearch(q, firecrawlKey, 15);
+                          const n = await processResults(r, "firecrawl");
+                          if (n > 0) send({ phase: 3, type: "ok", log: `  🔥 +${n} · "${q.slice(0, 50)}"` });
+                        } catch { /* ignore */ }
+                        await new Promise((r) => setTimeout(r, 500));
+                      }
+                    })());
+                  }
+                  autoTasks.push((async () => {
+                    try {
+                      const r = await duckduckgoSearch(`"chat.whatsapp.com/" ${v}`);
+                      const n = await processResults(r, "duckduckgo");
+                      if (n > 0) send({ phase: 3, type: "ok", log: `  🦆 +${n} · "${v.slice(0, 50)}"` });
+                    } catch { /* ignore */ }
+                  })());
+                }
+                await Promise.allSettled(autoTasks);
+
+                // Validar só os novos
+                const newCodes = [...found.values()].filter((g) => g.status === "unknown" && !g.relevance);
+                if (newCodes.length > 0) {
+                  send({ phase: 3, type: "info", log: `  Validando +${newCodes.length} novos…` });
+                  for (let i = 0; i < newCodes.length; i += BATCH) {
+                    const batch = newCodes.slice(i, i + BATCH);
+                    await Promise.all(batch.map(async (g) => {
+                      const v = await validateInviteCached(g.code);
+                      const upd: FoundGroup = { ...g, status: v.status, title: v.title ?? g.title, description: v.description ?? g.description, image: v.image };
+                      found.set(g.code, upd);
+                      send({ groupUpdate: upd });
+                      if (v.status === "active") active++;
+                      else if (v.status === "revoked") revoked++;
+                    }));
+                  }
+                }
+                send({ phase: 3, type: "ok", log: `  Após expansão ${autoRound}: ${active} ativos` });
+              }
+              if (active < MIN_TARGET) {
+                send({ phase: 3, type: "info", log: `⚠️ Só ${active} ativos (alvo ${MIN_TARGET}). Sugestões: tente uma das variações da IA, ou adicione contexto mais específico.` });
+              }
+
+
               // ============ FASE 4 — Refinamento ============
               if (nvidiaKey && depth >= 3 && active > 0 && braveKey) {
                 const activeGroups = [...found.values()].filter((g) => g.status === "active").slice(0, 30);
