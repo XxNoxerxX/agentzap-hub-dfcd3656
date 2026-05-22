@@ -357,6 +357,33 @@ export type Database = {
           },
         ]
       }
+      validated_invites: {
+        Row: {
+          code: string
+          description: string | null
+          image: string | null
+          last_checked_at: string
+          status: string
+          title: string | null
+        }
+        Insert: {
+          code: string
+          description?: string | null
+          image?: string | null
+          last_checked_at?: string
+          status: string
+          title?: string | null
+        }
+        Update: {
+          code?: string
+          description?: string | null
+          image?: string | null
+          last_checked_at?: string
+          status?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_groups: {
         Row: {
           description: string | null
