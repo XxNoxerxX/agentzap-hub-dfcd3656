@@ -444,11 +444,13 @@ JSON array só, sem comentários.` },
                   let total = 0;
                   for (let i = 0; i < variants.length; i++) {
                     const v = variants[i];
-                    // 2 queries por variante: uma genérica, outra com site:chat.whatsapp.com
+                    // Múltiplas queries com âncora chat.whatsapp.com/
                     const queries = [
-                      `${v} grupo whatsapp link convite`,
-                      `"${v}" "chat.whatsapp.com"`,
+                      `"chat.whatsapp.com/" "${v}"`,
+                      `"chat.whatsapp.com/" ${v} grupo convite`,
+                      `inurl:"chat.whatsapp.com/" ${v}`,
                     ];
+
                     for (const q of queries) {
                       try {
                         const r = await firecrawlSearch(q, firecrawlKey, 15);
