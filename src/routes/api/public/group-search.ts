@@ -366,12 +366,19 @@ Retorne JSON:
                 try {
                   send({ phase: 1, type: "info", log: `Gerando ${dorkTargetByDepth} dorks…` });
                   const out = await nvidia([
-                    { role: "system", content: "Você gera dorks PRECISAS para Google/Brave. Responda APENAS array JSON." },
+                    { role: "system", content: "Você gera dorks PRECISAS para Google/Brave/DuckDuckGo. Toda dork DEVE conter literalmente \"chat.whatsapp.com/\" (com aspas e a barra) — esse é o âncora que captura links de convite. Responda APENAS array JSON." },
                     { role: "user", content: `BRIEF: ${expansion.brief}
 TERMOS POSITIVOS: ${expansion.positiveTerms.join(", ")}
 NEGATIVOS (use -termo): ${expansion.negativeTerms.join(", ")}
 
-Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, aspas em frases, -negativos. Inclua reddit, facebook/groups, t.me, pastebin, github. JSON array só.` },
+Gere ${dorkTargetByDepth} dorks (PT/EN/ES). REGRAS:
+1. TODA dork contém literalmente: "chat.whatsapp.com/"
+2. Combine com operadores: inurl:, intext:, intitle:, site:reddit.com, site:facebook.com, site:t.me, site:pastebin.com, site:github.com, site:medium.com, site:linktr.ee
+3. Varie a posição do âncora e use sinônimos dos termos positivos
+4. Use -negativos pra reduzir ruído
+5. Inclua variantes regionais (cidades, gírias)
+JSON array só, sem comentários.` },
+
                   ], nvidiaKey, 3500);
                   dorks = (extractJSON<string[]>(out) ?? []).filter((d) => typeof d === "string" && d.length > 3).slice(0, dorkTargetByDepth);
                   send({ phase: 1, type: "ok", log: `${dorks.length} dorks geradas` });
