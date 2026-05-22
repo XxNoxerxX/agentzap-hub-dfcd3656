@@ -14,6 +14,7 @@ const FIRECRAWL_URL = "https://api.firecrawl.dev/v2/search";
 
 // Sites diretório de grupos WhatsApp (alta densidade de invites)
 const DIRECTORY_SITES = [
+  "gruposwhats.app",
   "grupowhats.com",
   "gruposwhats.com.br",
   "gruposdozap.com",
@@ -26,7 +27,18 @@ const DIRECTORY_SITES = [
   "chat-whatsapp.com",
   "whatsappgrupos.com.br",
   "grupozap.net",
+  "linksdegrupos.com.br",
+  "grupowpp.com",
+  "gruposwpp.com",
+  "joinwhatsappgroup.com",
+  "whatsapp-group-invite.com",
+  "groupslinks.com",
+  "whatsgrupos.com",
+  "zapgrupos.com.br",
+  "gruposlinks.com",
+  "comunidadewhats.com",
 ];
+
 
 const SHORTENER_HOSTS = ["bit.ly", "cutt.ly", "tinyurl.com", "encurtador.com.br", "is.gd", "rb.gy", "shorturl.at", "t.ly"];
 
