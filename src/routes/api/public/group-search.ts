@@ -14,6 +14,7 @@ const FIRECRAWL_URL = "https://api.firecrawl.dev/v2/search";
 
 // Sites diretório de grupos WhatsApp (alta densidade de invites)
 const DIRECTORY_SITES = [
+  "gruposwhats.app",
   "grupowhats.com",
   "gruposwhats.com.br",
   "gruposdozap.com",
@@ -26,7 +27,18 @@ const DIRECTORY_SITES = [
   "chat-whatsapp.com",
   "whatsappgrupos.com.br",
   "grupozap.net",
+  "linksdegrupos.com.br",
+  "grupowpp.com",
+  "gruposwpp.com",
+  "joinwhatsappgroup.com",
+  "whatsapp-group-invite.com",
+  "groupslinks.com",
+  "whatsgrupos.com",
+  "zapgrupos.com.br",
+  "gruposlinks.com",
+  "comunidadewhats.com",
 ];
+
 
 const SHORTENER_HOSTS = ["bit.ly", "cutt.ly", "tinyurl.com", "encurtador.com.br", "is.gd", "rb.gy", "shorturl.at", "t.ly"];
 
@@ -233,15 +245,23 @@ async function validateInviteCached(code: string): Promise<{ status: GroupStatus
 // ============ DORKS PADRÃO ============
 
 const DEFAULT_DORKS = (q: string) => [
-  `"${q}" site:chat.whatsapp.com`,
-  `${q} "chat.whatsapp.com"`,
-  `${q} grupo whatsapp link`,
-  `${q} entrar grupo whatsapp`,
-  `inurl:chat.whatsapp.com ${q}`,
-  `intext:"chat.whatsapp.com" ${q}`,
-  `${q} whatsapp group join`,
-  `"${q}" whatsapp grupo`,
+  `"chat.whatsapp.com/" "${q}"`,
+  `"chat.whatsapp.com/" ${q}`,
+  `inurl:"chat.whatsapp.com/" "${q}"`,
+  `intext:"chat.whatsapp.com/" ${q}`,
+  `"https://chat.whatsapp.com/" ${q}`,
+  `"chat.whatsapp.com/" ${q} grupo`,
+  `"chat.whatsapp.com/" ${q} convite`,
+  `"chat.whatsapp.com/" ${q} entrar`,
+  `"chat.whatsapp.com/" ${q} site:reddit.com`,
+  `"chat.whatsapp.com/" ${q} site:facebook.com`,
+  `"chat.whatsapp.com/" ${q} site:t.me`,
+  `"chat.whatsapp.com/" ${q} site:pastebin.com`,
+  `"chat.whatsapp.com/" ${q} site:github.com`,
+  `"chat.whatsapp.com/" ${q} site:medium.com`,
+  `${q} "chat.whatsapp.com/" -site:chat.whatsapp.com`,
 ];
+
 
 interface ExpansionBrief {
   brief: string;
@@ -346,12 +366,19 @@ Retorne JSON:
                 try {
                   send({ phase: 1, type: "info", log: `Gerando ${dorkTargetByDepth} dorks…` });
                   const out = await nvidia([
-                    { role: "system", content: "Você gera dorks PRECISAS para Google/Brave. Responda APENAS array JSON." },
+                    { role: "system", content: "Você gera dorks PRECISAS para Google/Brave/DuckDuckGo. Toda dork DEVE conter literalmente \"chat.whatsapp.com/\" (com aspas e a barra) — esse é o âncora que captura links de convite. Responda APENAS array JSON." },
                     { role: "user", content: `BRIEF: ${expansion.brief}
 TERMOS POSITIVOS: ${expansion.positiveTerms.join(", ")}
 NEGATIVOS (use -termo): ${expansion.negativeTerms.join(", ")}
 
-Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:chat.whatsapp.com, inurl:, intext:, intitle:, aspas em frases, -negativos. Inclua reddit, facebook/groups, t.me, pastebin, github. JSON array só.` },
+Gere ${dorkTargetByDepth} dorks (PT/EN/ES). REGRAS:
+1. TODA dork contém literalmente: "chat.whatsapp.com/"
+2. Combine com operadores: inurl:, intext:, intitle:, site:reddit.com, site:facebook.com, site:t.me, site:pastebin.com, site:github.com, site:medium.com, site:linktr.ee
+3. Varie a posição do âncora e use sinônimos dos termos positivos
+4. Use -negativos pra reduzir ruído
+5. Inclua variantes regionais (cidades, gírias)
+JSON array só, sem comentários.` },
+
                   ], nvidiaKey, 3500);
                   dorks = (extractJSON<string[]>(out) ?? []).filter((d) => typeof d === "string" && d.length > 3).slice(0, dorkTargetByDepth);
                   send({ phase: 1, type: "ok", log: `${dorks.length} dorks geradas` });
@@ -417,11 +444,13 @@ Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:ch
                   let total = 0;
                   for (let i = 0; i < variants.length; i++) {
                     const v = variants[i];
-                    // 2 queries por variante: uma genérica, outra com site:chat.whatsapp.com
+                    // Múltiplas queries com âncora chat.whatsapp.com/
                     const queries = [
-                      `${v} grupo whatsapp link convite`,
-                      `"${v}" "chat.whatsapp.com"`,
+                      `"chat.whatsapp.com/" "${v}"`,
+                      `"chat.whatsapp.com/" ${v} grupo convite`,
+                      `inurl:"chat.whatsapp.com/" ${v}`,
                     ];
+
                     for (const q of queries) {
                       try {
                         const r = await firecrawlSearch(q, firecrawlKey, 15);
@@ -437,29 +466,35 @@ Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:ch
                   send({ phase: 2, type: "ok", log: `🔥 Firecrawl concluído: +${total} grupos` });
                 })());
 
-                // Sites diretório via Firecrawl (site:domain query)
+                // Sites diretório: 2 queries por site pra maximizar cobertura
                 tasks.push((async () => {
                   let total = 0;
                   for (const site of DIRECTORY_SITES) {
-                    try {
-                      const r = await firecrawlSearch(`site:${site} ${query}`, firecrawlKey, 10);
-                      const n = await processResults(r, "directory");
-                      total += n;
-                      if (n > 0) send({ phase: 2, type: "ok", log: `📚 ${site} +${n}` });
-                    } catch (e) {
-                      send({ phase: 2, type: "err", log: `📚 ${site}: ${(e as Error).message.slice(0, 60)}` });
+                    for (const v of variants.slice(0, 2)) {
+                      try {
+                        const r = await firecrawlSearch(`site:${site} "chat.whatsapp.com/" ${v}`, firecrawlKey, 10);
+                        const n = await processResults(r, "directory");
+                        total += n;
+                        if (n > 0) send({ phase: 2, type: "ok", log: `📚 ${site} "${v.slice(0, 25)}" +${n}` });
+                      } catch (e) {
+                        send({ phase: 2, type: "err", log: `📚 ${site}: ${(e as Error).message.slice(0, 60)}` });
+                      }
+                      await new Promise((r) => setTimeout(r, 500));
                     }
-                    await new Promise((r) => setTimeout(r, 500));
                   }
                   send({ phase: 2, type: "ok", log: `📚 Diretórios concluídos: +${total} grupos` });
                 })());
               }
 
-              // DuckDuckGo: roda nas variantes (grátis, fallback robusto)
+              // DuckDuckGo: roda nas variantes com âncora chat.whatsapp.com/
               tasks.push((async () => {
                 let total = 0;
                 for (const v of variants) {
-                  const queries = [`${v} chat.whatsapp.com`, `${v} grupo whatsapp link`];
+                  const queries = [
+                    `"chat.whatsapp.com/" ${v}`,
+                    `"chat.whatsapp.com/" "${v}" grupo`,
+                    `inurl:"chat.whatsapp.com/" ${v}`,
+                  ];
                   for (const q of queries) {
                     try {
                       const r = await duckduckgoSearch(q);
@@ -474,6 +509,7 @@ Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:ch
                 }
                 send({ phase: 2, type: "ok", log: `🦆 DuckDuckGo concluído: +${total} grupos` });
               })());
+
 
               await Promise.allSettled(tasks);
               send({ phase: 2, type: "ok", log: `Total único: ${found.size} grupos · ${shortenersSeen.size} shorteners` });
@@ -518,6 +554,61 @@ Gere ${dorkTargetByDepth} dorks (PT/EN/ES) combinando termos+operadores: site:ch
                 send({ phase: 3, type: "info", log: `  ${Math.min(i + BATCH, toValidate.length)}/${toValidate.length} · ✓${active} ✗${revoked} ?${unknown} (cache:${cached})` });
               }
               send({ phase: 3, type: "ok", log: `Validação: ${active} ativos · ${revoked} revogados · ${unknown} ? · ${cached} do cache` });
+
+              // ============ FASE 3.5 — Auto-expansão se < 5 ativos ============
+              const MIN_TARGET = 5;
+              const remainingVariants = expansion.keywordVariants.filter((v) => !variants.includes(v));
+              let autoRound = 0;
+              while (active < MIN_TARGET && autoRound < 3 && remainingVariants.length > 0) {
+                autoRound++;
+                const extras = remainingVariants.splice(0, 3);
+                send({ phase: 3, type: "info", log: `⚡ Auto-expansão ${autoRound}: ${active}/${MIN_TARGET} ativos. Tentando: ${extras.map((e) => `"${e}"`).join(", ")}` });
+                const autoTasks: Promise<void>[] = [];
+                for (const v of extras) {
+                  if (firecrawlKey) {
+                    autoTasks.push((async () => {
+                      for (const q of [`"chat.whatsapp.com/" "${v}"`, `"chat.whatsapp.com/" ${v} grupo`]) {
+                        try {
+                          const r = await firecrawlSearch(q, firecrawlKey, 15);
+                          const n = await processResults(r, "firecrawl");
+                          if (n > 0) send({ phase: 3, type: "ok", log: `  🔥 +${n} · "${q.slice(0, 50)}"` });
+                        } catch { /* ignore */ }
+                        await new Promise((r) => setTimeout(r, 500));
+                      }
+                    })());
+                  }
+                  autoTasks.push((async () => {
+                    try {
+                      const r = await duckduckgoSearch(`"chat.whatsapp.com/" ${v}`);
+                      const n = await processResults(r, "duckduckgo");
+                      if (n > 0) send({ phase: 3, type: "ok", log: `  🦆 +${n} · "${v.slice(0, 50)}"` });
+                    } catch { /* ignore */ }
+                  })());
+                }
+                await Promise.allSettled(autoTasks);
+
+                // Validar só os novos
+                const newCodes = [...found.values()].filter((g) => g.status === "unknown" && !g.relevance);
+                if (newCodes.length > 0) {
+                  send({ phase: 3, type: "info", log: `  Validando +${newCodes.length} novos…` });
+                  for (let i = 0; i < newCodes.length; i += BATCH) {
+                    const batch = newCodes.slice(i, i + BATCH);
+                    await Promise.all(batch.map(async (g) => {
+                      const v = await validateInviteCached(g.code);
+                      const upd: FoundGroup = { ...g, status: v.status, title: v.title ?? g.title, description: v.description ?? g.description, image: v.image };
+                      found.set(g.code, upd);
+                      send({ groupUpdate: upd });
+                      if (v.status === "active") active++;
+                      else if (v.status === "revoked") revoked++;
+                    }));
+                  }
+                }
+                send({ phase: 3, type: "ok", log: `  Após expansão ${autoRound}: ${active} ativos` });
+              }
+              if (active < MIN_TARGET) {
+                send({ phase: 3, type: "info", log: `⚠️ Só ${active} ativos (alvo ${MIN_TARGET}). Sugestões: tente uma das variações da IA, ou adicione contexto mais específico.` });
+              }
+
 
               // ============ FASE 4 — Refinamento ============
               if (nvidiaKey && depth >= 3 && active > 0 && braveKey) {
