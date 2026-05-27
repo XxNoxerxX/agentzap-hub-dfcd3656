@@ -245,6 +245,96 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          age: number | null
+          city: string | null
+          created_at: string
+          gender: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          phone_number: string
+          source: string
+          state: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          age?: number | null
+          city?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone_number: string
+          source?: string
+          state?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          age?: number | null
+          city?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone_number?: string
+          source?: string
+          state?: string | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
+      member_add_jobs: {
+        Row: {
+          added_count: number
+          created_at: string
+          failed_count: number
+          finished_at: string | null
+          group_id: string | null
+          group_name: string | null
+          id: string
+          instance_id: string | null
+          lead_ids: Json
+          log: Json
+          risk_level: string
+          status: string
+          target_count: number
+        }
+        Insert: {
+          added_count?: number
+          created_at?: string
+          failed_count?: number
+          finished_at?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          instance_id?: string | null
+          lead_ids?: Json
+          log?: Json
+          risk_level?: string
+          status?: string
+          target_count?: number
+        }
+        Update: {
+          added_count?: number
+          created_at?: string
+          failed_count?: number
+          finished_at?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          instance_id?: string | null
+          lead_ids?: Json
+          log?: Json
+          risk_level?: string
+          status?: string
+          target_count?: number
+        }
+        Relationships: []
+      }
       memory_notes: {
         Row: {
           category: string
@@ -391,7 +481,9 @@ export type Database = {
           group_jid: string
           id: string
           instance_id: string
+          is_admin: boolean
           member_count: number
+          member_goal: number | null
           name: string
         }
         Insert: {
@@ -400,7 +492,9 @@ export type Database = {
           group_jid: string
           id?: string
           instance_id: string
+          is_admin?: boolean
           member_count?: number
+          member_goal?: number | null
           name: string
         }
         Update: {
@@ -409,7 +503,9 @@ export type Database = {
           group_jid?: string
           id?: string
           instance_id?: string
+          is_admin?: boolean
           member_count?: number
+          member_goal?: number | null
           name?: string
         }
         Relationships: [
