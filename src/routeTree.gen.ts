@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MemoriaRouteImport } from './routes/memoria'
 import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as FiltroNumerosRouteImport } from './routes/filtro-numeros'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as BuscarGruposRouteImport } from './routes/buscar-grupos'
 import { Route as AutoRespostaRouteImport } from './routes/auto-resposta'
 import { Route as AquecimentoRouteImport } from './routes/aquecimento'
+import { Route as AdicionarMembrosRouteImport } from './routes/adicionar-membros'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InstanciasIdRouteImport } from './routes/instancias.$id'
 import { Route as ApiPublicGroupSearchRouteImport } from './routes/api/public/group-search'
@@ -29,6 +31,11 @@ const MemoriaRoute = MemoriaRouteImport.update({
 const MembrosRoute = MembrosRouteImport.update({
   id: '/membros',
   path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoricoRoute = HistoricoRouteImport.update({
@@ -61,6 +68,11 @@ const AquecimentoRoute = AquecimentoRouteImport.update({
   path: '/aquecimento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdicionarMembrosRoute = AdicionarMembrosRouteImport.update({
+  id: '/adicionar-membros',
+  path: '/adicionar-membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -79,12 +91,14 @@ const ApiPublicGroupSearchRoute = ApiPublicGroupSearchRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/adicionar-membros': typeof AdicionarMembrosRoute
   '/aquecimento': typeof AquecimentoRoute
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
+  '/leads': typeof LeadsRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
   '/instancias/$id': typeof InstanciasIdRoute
@@ -92,12 +106,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/adicionar-membros': typeof AdicionarMembrosRoute
   '/aquecimento': typeof AquecimentoRoute
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
+  '/leads': typeof LeadsRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
   '/instancias/$id': typeof InstanciasIdRoute
@@ -106,12 +122,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/adicionar-membros': typeof AdicionarMembrosRoute
   '/aquecimento': typeof AquecimentoRoute
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
+  '/leads': typeof LeadsRoute
   '/membros': typeof MembrosRoute
   '/memoria': typeof MemoriaRoute
   '/instancias/$id': typeof InstanciasIdRoute
@@ -121,12 +139,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/adicionar-membros'
     | '/aquecimento'
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
     | '/filtro-numeros'
     | '/historico'
+    | '/leads'
     | '/membros'
     | '/memoria'
     | '/instancias/$id'
@@ -134,12 +154,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/adicionar-membros'
     | '/aquecimento'
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
     | '/filtro-numeros'
     | '/historico'
+    | '/leads'
     | '/membros'
     | '/memoria'
     | '/instancias/$id'
@@ -147,12 +169,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/adicionar-membros'
     | '/aquecimento'
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
     | '/filtro-numeros'
     | '/historico'
+    | '/leads'
     | '/membros'
     | '/memoria'
     | '/instancias/$id'
@@ -161,12 +185,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdicionarMembrosRoute: typeof AdicionarMembrosRoute
   AquecimentoRoute: typeof AquecimentoRoute
   AutoRespostaRoute: typeof AutoRespostaRoute
   BuscarGruposRoute: typeof BuscarGruposRoute
   CampanhasRoute: typeof CampanhasRoute
   FiltroNumerosRoute: typeof FiltroNumerosRoute
   HistoricoRoute: typeof HistoricoRoute
+  LeadsRoute: typeof LeadsRoute
   MembrosRoute: typeof MembrosRoute
   MemoriaRoute: typeof MemoriaRoute
   InstanciasIdRoute: typeof InstanciasIdRoute
@@ -187,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/membros'
       fullPath: '/membros'
       preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/historico': {
@@ -231,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AquecimentoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/adicionar-membros': {
+      id: '/adicionar-membros'
+      path: '/adicionar-membros'
+      fullPath: '/adicionar-membros'
+      preLoaderRoute: typeof AdicionarMembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -257,12 +297,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdicionarMembrosRoute: AdicionarMembrosRoute,
   AquecimentoRoute: AquecimentoRoute,
   AutoRespostaRoute: AutoRespostaRoute,
   BuscarGruposRoute: BuscarGruposRoute,
   CampanhasRoute: CampanhasRoute,
   FiltroNumerosRoute: FiltroNumerosRoute,
   HistoricoRoute: HistoricoRoute,
+  LeadsRoute: LeadsRoute,
   MembrosRoute: MembrosRoute,
   MemoriaRoute: MemoriaRoute,
   InstanciasIdRoute: InstanciasIdRoute,
