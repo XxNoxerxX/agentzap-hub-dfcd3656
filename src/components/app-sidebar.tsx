@@ -10,6 +10,8 @@ import {
   History,
   Brain,
   Zap,
+  UserPlus,
+  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +27,8 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Membros Extraídos", url: "/membros", icon: Users },
   { title: "Buscar Grupos", url: "/buscar-grupos", icon: Search },
+  { title: "Banco de Leads", url: "/leads", icon: Target },
+  { title: "Adicionar Membros", url: "/adicionar-membros", icon: UserPlus },
   { title: "Aquecimento", url: "/aquecimento", icon: Flame },
   { title: "Filtro de Números", url: "/filtro-numeros", icon: Filter },
   { title: "Campanhas", url: "/campanhas", icon: CalendarDays },
