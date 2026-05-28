@@ -43,7 +43,6 @@ const items = [
 export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const backend = useBackendStatus();
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   return (
     <Sidebar className="border-r border-sidebar-border" collapsible="icon">
