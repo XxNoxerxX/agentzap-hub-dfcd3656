@@ -14,6 +14,7 @@ import { Route as MembrosRouteImport } from './routes/membros'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as FiltroNumerosRouteImport } from './routes/filtro-numeros'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as BuscarGruposRouteImport } from './routes/buscar-grupos'
 import { Route as AutoRespostaRouteImport } from './routes/auto-resposta'
@@ -46,6 +47,11 @@ const HistoricoRoute = HistoricoRouteImport.update({
 const FiltroNumerosRoute = FiltroNumerosRouteImport.update({
   id: '/filtro-numeros',
   path: '/filtro-numeros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampanhasRoute = CampanhasRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
   '/leads': typeof LeadsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
   '/leads': typeof LeadsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/auto-resposta': typeof AutoRespostaRoute
   '/buscar-grupos': typeof BuscarGruposRoute
   '/campanhas': typeof CampanhasRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/filtro-numeros': typeof FiltroNumerosRoute
   '/historico': typeof HistoricoRoute
   '/leads': typeof LeadsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
+    | '/configuracoes'
     | '/filtro-numeros'
     | '/historico'
     | '/leads'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
+    | '/configuracoes'
     | '/filtro-numeros'
     | '/historico'
     | '/leads'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/auto-resposta'
     | '/buscar-grupos'
     | '/campanhas'
+    | '/configuracoes'
     | '/filtro-numeros'
     | '/historico'
     | '/leads'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   AutoRespostaRoute: typeof AutoRespostaRoute
   BuscarGruposRoute: typeof BuscarGruposRoute
   CampanhasRoute: typeof CampanhasRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   FiltroNumerosRoute: typeof FiltroNumerosRoute
   HistoricoRoute: typeof HistoricoRoute
   LeadsRoute: typeof LeadsRoute
@@ -234,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/filtro-numeros'
       fullPath: '/filtro-numeros'
       preLoaderRoute: typeof FiltroNumerosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campanhas': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   AutoRespostaRoute: AutoRespostaRoute,
   BuscarGruposRoute: BuscarGruposRoute,
   CampanhasRoute: CampanhasRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   FiltroNumerosRoute: FiltroNumerosRoute,
   HistoricoRoute: HistoricoRoute,
   LeadsRoute: LeadsRoute,
