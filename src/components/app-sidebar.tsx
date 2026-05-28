@@ -12,6 +12,7 @@ import {
   Zap,
   UserPlus,
   Target,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -22,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useBackendStatus } from "@/hooks/use-backend-status";
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -35,6 +37,7 @@ const items = [
   { title: "Auto-Resposta", url: "/auto-resposta", icon: MessageSquare },
   { title: "Histórico", url: "/historico", icon: History },
   { title: "Memória", url: "/memoria", icon: Brain },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {
