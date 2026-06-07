@@ -35,7 +35,7 @@ export async function startSession(id: string) {
       headless: true,
       qrTimeout: 0,
       authTimeout: 60,
-      qrCallback: (qr) => { s.qr = qr; s.status = "qr_ready"; },
+      qrCallback: (qr: string) => { s.qr = qr; s.status = "qr_ready"; },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     s.client = client;
