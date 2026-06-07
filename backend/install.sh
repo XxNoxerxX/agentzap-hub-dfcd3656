@@ -13,14 +13,33 @@ if ! command -v node >/dev/null; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | $NEED_SUDO -E bash -
   $NEED_SUDO apt-get install -y nodejs
 fi
-$NEED_SUDO apt-get install -y postgresql postgresql-contrib chromium-browser \
-  libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libasound2 \
+
+apt_has_package() {
+  apt-cache show "$1" >/dev/null 2>&1
+}
+
+CHROMIUM_PACKAGE="chromium-browser"
+apt_has_package chromium && CHROMIUM_PACKAGE="chromium"
+
+ASOUND_PACKAGE="libasound2"
+apt_has_package libasound2t64 && ASOUND_PACKAGE="libasound2t64"
+
+$NEED_SUDO apt-get install -y postgresql postgresql-contrib "$CHROMIUM_PACKAGE" \
+  libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 "$ASOUND_PACKAGE" \
   libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libxshmfence1 libpangocairo-1.0-0 \
-  libpango-1.0-0 fonts-liberation || true
+  libpango-1.0-0 fonts-liberation
 
 echo "==> 3/6 Iniciando PostgreSQL"
-$NEED_SUDO service postgresql start || true
-sleep 2
+if command -v systemctl >/dev/null && systemctl list-unit-files | grep -q '^postgresql.service'; then
+  $NEED_SUDO systemctl enable --now postgresql
+else
+  $NEED_SUDO service postgresql start
+fi
+
+if ! id postgres >/dev/null 2>&1; then
+  echo "Erro: o usuário postgres não existe. A instalação do PostgreSQL falhou."
+  exit 1
+fi
 
 echo "==> 4/6 Criando database/usuário agentzap (se não existir)"
 $NEED_SUDO -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='agentzap'" | grep -q 1 || \
